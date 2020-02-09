@@ -30,9 +30,10 @@
   </div>
 </nav>
 
-<div class="container" style="margin-top:30px" id="artisan-ui">
-	  
+<div class="container" style="margin-top:20px" id="app">
+	  <example-component></example-component>
 </div>
 </body>
-{{--  <script src="{{ asset('vendor/asif/artisan-ui/src/dist/js/app.js') }}"></script>  --}}
+  <script src="{{ asset('vendor/asif/package-manager/dist/app.js') }}"></script>
+
 </html>
