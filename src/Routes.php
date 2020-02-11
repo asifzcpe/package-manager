@@ -3,7 +3,7 @@
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 Route::get('/package-manager','Asif\PackageManager\PackageManagerController@index');
-Route::get('/run',function (){
+Route::get('/run/{packageName}',function ($packageName){
 
 //
 //    $process=new Process('ping -c 4 google.com');
@@ -32,11 +32,13 @@ Route::get('/run',function (){
 //     }
 //     echo '</pre>';
 //    $proc = popen("composer dumpautoload 2>&1", 'r');
-    $proc = popen("composer require -d ".base_path()." asif/laravel-moduler 2>&1", 'r');
+    $proc = popen("composer remove -d ".base_path()." asif/laravel-moduler 2>&1", 'r');
     $response = new StreamedResponse(function() use($proc){
         while(!feof($proc)) {
+            echo "event: process_running\n";
             echo 'data: ' . fread($proc, 409000006) . "\n\n";
 
+            ob_flush();
             flush();
             usleep(200000);
         }
