@@ -5,20 +5,15 @@
                 <input type="search"
                        placeholder="What're you searching for?"
                        aria-describedby="button-addon"
+                       v-model="packageSearch"
+                       @keyup.enter="search"
                        class="form-control border-primary"/>
             </div>
             <div class="col-md-3">
                 <input type="button" @click="next(pageLink)" class="btn btn-info" value="Previous"/>
                 <input type="button" @click="next(pageLink)" class="btn btn-info" value="Next"/>
-                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" @click="install"
-                        data-target="#exampleModal">Install
-                </button>
-                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" @click="stop"
-                        data-target="#exampleModal">Stop
-                </button>
             </div>
         </div>
-        <br>
         <div class="tableFixHead">
             <table class="table table-sm">
                 <thead>
@@ -31,6 +26,14 @@
                 </tr>
                 </thead>
                 <tbody>
+                <tr v-if="!packages.length || showLoading">
+                    <td colspan="5" class="text-center">
+                        Packages are getting loaded
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
                 <tr v-for="(pack,index) in packages" :key="index">
                     <td>{{index+1}}</td>
                     <td>{{pack.name}}</td>
@@ -118,7 +121,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-12 overflow-auto" style="height:200px; background-color:black;color:white;">
+                                <div class="col-md-12 overflow-auto"
+                                     style="height:200px; background-color:black;color:white;">
                                     <p id="result"></p>
                                 </div>
                             </div>
@@ -126,7 +130,9 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" @click="installPackageConfirmation(packageInfo.name)">Install Package</button>
+                        <button type="button" class="btn btn-primary"
+                                @click="installPackageConfirmation(packageInfo.name)">Install Package
+                        </button>
                     </div>
                 </div>
             </div>
@@ -171,7 +177,9 @@
                 eventSource: null,
                 packageInfo: [],
                 downloads: 0,
-                composerOutput:'',
+                composerOutput: '',
+                packageSearch: '',
+                showLoading:false,
             }
         },
         created() {
@@ -186,14 +194,31 @@
             });
         },
         methods: {
+            search() {
+                axios.get('https://packagist.org/search.json?q=' + this.packageSearch).then((response) => {
+                    let data = response.data;
+                    this.packages = data.results;
+                    this.totalResults = data.total;
+                    this.pageLink = data.next;
+                })
+                    .catch((err) => {
+                        console.log(err);
+                    });
+            },
             next(nextLink) {
+                this.showLoading=true;
                 axios.get(nextLink).then((response) => {
                     console.log(response);
                     let data = response.data;
                     this.packages = data.results;
                     this.totalResults = data.total;
                     this.pageLink = data.next;
-                })
+                    this.showLoading=false;
+                }).catch((err)=>{
+                    console.log(err);
+                    alert("No data found");
+                    this.showLoading=false;
+                });
             },
             install() {
                 // axios.get('http://localhost:1000/run').then((response) => {
@@ -216,24 +241,22 @@
                 axios.get('https://packagist.org/packages/' + packageName + '.json').then((response) => {
                     this.packageInfo = response.data.package;
                     this.downloads = this.packageInfo.downloads;
-                })
-                    .catch((err) => {
-                        console.log(err);
-                    });
+                }).catch((err) => {
+                    console.log(err);
+                });
             },
-            installPackageConfirmation(packageName){
-                this.eventSource = new EventSource('http://localhost:9090/run/test');
+            installPackageConfirmation(packageName) {
+                this.eventSource = new EventSource('http://localhost:9000/run/test');
 
                 // this.eventSource.onmessage = (e)=>{
                 //     this.composerOutput=e.data;
                 //     console.log(e.data);
                 // }
 
-                this.eventSource.addEventListener('process_running',e=>{
-                    let d=e.data;
+                this.eventSource.addEventListener('process_running', e => {
                     document.getElementById("result").innerHTML += e.data + "<br>";
-                    console.log(d);
-                },false);
+                    console.log(e.data);
+                }, false);
 
                 this.eventSource.addEventListener('process_ended', (e) => {
                     this.eventSource.close();

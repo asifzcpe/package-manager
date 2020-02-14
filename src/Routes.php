@@ -32,7 +32,7 @@ Route::get('/run/{packageName}',function ($packageName){
 //     }
 //     echo '</pre>';
 //    $proc = popen("composer dumpautoload 2>&1", 'r');
-    $proc = popen("composer remove -d ".base_path()." asif/laravel-moduler 2>&1", 'r');
+    $proc = popen("composer require -d ".base_path()." asif/laravel-moduler 2>&1", 'r');
     $response = new StreamedResponse(function() use($proc){
         while(!feof($proc)) {
             echo "event: process_running\n";
