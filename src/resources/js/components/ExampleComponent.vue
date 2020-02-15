@@ -10,8 +10,8 @@
                        class="form-control border-primary"/>
             </div>
             <div class="col-md-3">
-                <input type="button" @click="next(pageLink)" class="btn btn-info" value="Previous"/>
-                <input type="button" @click="next(pageLink)" class="btn btn-info" value="Next"/>
+                <input type="button" @click="navigatePage(previousPageLink)" class="btn btn-info" value="Previous"/>
+                <input type="button" @click="navigatePage(nextPageLink)" class="btn btn-info" value="Next"/>
             </div>
         </div>
         <div class="tableFixHead">
@@ -76,46 +76,42 @@
                                             <h2>{{ packageInfo.name }}</h2>
                                             <p><strong>Description: </strong> {{ packageInfo.description }}</p>
                                             <p><strong>Type: </strong> {{ packageInfo.type }} </p>
-                                            <p><strong>Repository: </strong><a target="_blank"
-                                                                               :href="packageInfo.repository">{{
-                                                packageInfo.repository }}</a></p>
+                                            <p><strong>Repository: </strong>
+                                                <a target="_blank"
+                                                   :href="packageInfo.repository">{{ packageInfo.repository }}</a></p>
                                         </div>
                                     </div>
                                     <div class="col-md-12 text-center">
                                         <div class="input-group">
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">GitHub stars: {{
+                                                <div class="input-group-text">GitHub stars: {{
                                                     packageInfo.github_stars }}
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">Watcher: {{
+                                                <div class="input-group-text">Watcher: {{
                                                     packageInfo.github_watchers }}
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">Forks: {{
+                                                <div class="input-group-text">Forks: {{
                                                     packageInfo.github_forks }}
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">Open Issues: {{
-                                                    packageInfo.github_open_issues }}
+                                                <div class="input-group-text">Open Issues: {{ packageInfo.github_open_issues }}
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">Total: {{
-                                                    downloads.total }}
+                                                <div class="input-group-text">Total: {{ downloads.total }}
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">Monthly: {{
-                                                    downloads.monthly }}
+                                                <div class="input-group-text">Monthly: {{ downloads.monthly }}
                                                 </div>
                                             </div>
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text" id="btnGroupAddon">Daily: {{
-                                                    downloads.daily }}
+                                                <div class="input-group-text">Daily: {{ downloads.daily }}
                                                 </div>
                                             </div>
                                         </div>
@@ -129,9 +125,13 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary"
-                                @click="installPackageConfirmation(packageInfo.name)">Install Package
+                        <button type="button"
+                                class="btn btn-secondary"
+                                data-dismiss="modal">Close
+                        </button>
+                        <button type="button"
+                                class="btn btn-primary"
+                                @click="installPackageConfirmation(packageInfo.name)">{{ installButtonText }}
                         </button>
                     </div>
                 </div>
@@ -173,13 +173,15 @@
             return {
                 packages: [],
                 totalResults: 0,
-                pageLink: '',
+                nextPageLink: '',
                 eventSource: null,
                 packageInfo: [],
                 downloads: 0,
                 composerOutput: '',
                 packageSearch: '',
                 showLoading:false,
+                previousPageLink:'',
+                installButtonText:'Install Package',
             }
         },
         created() {
@@ -188,9 +190,11 @@
                 let data = response.data;
                 this.packages = data.results;
                 this.totalResults = data.total;
-                this.pageLink = data.next;
+                this.nextPageLink = data.next;
+                this.previousPageLink=response.config.url;
             }).catch((err) => {
                 console.log("no onternet");
+                alert("No data found");
             });
         },
         methods: {
@@ -199,43 +203,27 @@
                     let data = response.data;
                     this.packages = data.results;
                     this.totalResults = data.total;
-                    this.pageLink = data.next;
-                })
-                    .catch((err) => {
-                        console.log(err);
-                    });
+                    this.nextPageLink = data.next;
+                    this.previousPageLink=response.config.url;
+                }).catch((err) => {
+                    console.log(err);
+                });
             },
-            next(nextLink) {
+            navigatePage(pageUrl) {
                 this.showLoading=true;
-                axios.get(nextLink).then((response) => {
+                axios.get(pageUrl).then((response) => {
                     console.log(response);
                     let data = response.data;
                     this.packages = data.results;
                     this.totalResults = data.total;
-                    this.pageLink = data.next;
+                    this.nextPageLink = data.next;
+                    this.previousPageLink=response.config.url;
                     this.showLoading=false;
                 }).catch((err)=>{
                     console.log(err);
                     alert("No data found");
                     this.showLoading=false;
                 });
-            },
-            install() {
-                // axios.get('http://localhost:1000/run').then((response) => {
-                //     console.log(response);
-                // })
-                this.eventSource = new EventSource('http://localhost:9000/run/');
-
-                this.eventSource.onmessage = function (e) {
-                    console.log(e.data);
-                }
-
-                this.eventSource.addEventListener('process_ended', (e) => {
-                    this.eventSource.close();
-                });
-            },
-            stop() {
-
             },
             openPackageInstallationModal(packageName) {
                 axios.get('https://packagist.org/packages/' + packageName + '.json').then((response) => {
@@ -246,19 +234,17 @@
                 });
             },
             installPackageConfirmation(packageName) {
-                this.eventSource = new EventSource('http://localhost:9000/run/test');
+                let pack=packageName.replace("/", "^");
+                this.eventSource = new EventSource('install-package/'+pack);
 
-                // this.eventSource.onmessage = (e)=>{
-                //     this.composerOutput=e.data;
-                //     console.log(e.data);
-                // }
-
+                this.installButtonText="Installing.....";
                 this.eventSource.addEventListener('process_running', e => {
                     document.getElementById("result").innerHTML += e.data + "<br>";
                     console.log(e.data);
                 }, false);
 
                 this.eventSource.addEventListener('process_ended', (e) => {
+                    this.installButtonText="Install Package";
                     this.eventSource.close();
                 });
             }
